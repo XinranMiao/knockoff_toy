@@ -1,0 +1,105 @@
+
+```{r}
+library(tidyverse)
+library(MASS)
+set.seed(0000)
+source("functions.R")
+```
+
+
+# Example: the idea of knock-off
+```{r}
+# data setting
+p <- 1000
+m <- p * 0.9 # null hypotheses
+n <- 200
+
+# error control
+alpha <- 0.2
+
+data_list <- generate_data(n, p, m, signal = signal)
+x <- data_list$x; x_tilde <- data_list$x_tilde; y <- data_list$y
+```
+
+
+```{r}
+p_vals <- c()
+t_stats <- c()
+t_tilde_stats <- c()
+w_stats <- c()
+for (j in 1:p) {
+  mod <- lm(y ~ x[, j] + x_tilde[, j])
+  s = summary(mod)
+  t_stats <- c(t_stats, s$coefficients[2, 3])
+  p_vals <- c(p_vals, s$coefficients[2, 4])
+  t_tilde_stats <- c(t_tilde_stats, s$coefficients[3, 3])
+      
+   w_stats <- c(w_stats, abs(t_stats[j]) - abs(t_tilde_stats[j] ))
+}
+    
+# threshold for the knockoff
+(thres_kf <- cal_t(w_stats, alpha))
+# false discovery proportion
+(fdp <- sum(w_stats[1:m] >= thres_kf) / p)
+(tdp <-sum(w_stats[(m + 1):p] >= thres_kf) / (p - m))
+
+# threshold for the BH
+(thres_bh <- cal_p(p_vals, alpha, p))
+```
+```{r}
+jpeg(file="illustration_knockoff.jpeg", width = 500, height = 400)
+plot(1:m, w_stats[1:m], col = "black", xlim = c(1, p ), ylim = c(-3, 4),
+     pch = 1,
+     xlab = expression(j),
+     ylab = expression(W[j]))
+points((m+1):p, w_stats[(m+1):p], col = "blue", pch = 3)
+abline(h = thres_kf, col = "red")
+text(600, thres_kf + .5, labels = "Rejection threshold", col = "red")
+legend("topleft", legend = c("true null", "true alternative"), col = c("black", "blue"), 
+       pch = c(1, 3))
+```
+
+
+
+# Visualization: FDP of knock-off versus BH
+
+```{r}
+rates <- simulate(n = n, p = p, m = m, K = 100, signal = 4)
+head(rates)
+```
+
+```{r}
+col_palette <-  c("#386cb0","#fdb462")
+library(ggdist)
+rates %>%
+  ggplot +
+   ggdist::stat_dots(
+    aes(x = fdp, y = method,
+        color = method), 
+    alpha = .9, quantiles = 100,
+    dotsize = 1,
+    show.legend = FALSE,
+    .width = c(0.8, 0.95), ) +
+   ggdist::stat_slab(
+    aes( x = fdp, y = method,color = method, fill = method,
+        fill_ramp = stat(cut_cdf_qi(
+          cdf, .width = c( .5,.75, .95),
+          labels = scales::percent_format()
+        ))
+    ),side = "bottom", scale = 0.5, show.legend = FALSE) +
+  scale_fill_ramp_discrete(range = c(1, 0.2), na.translate = FALSE) +
+  scale_color_manual(values = col_palette) +
+  scale_fill_manual(values = col_palette) +
+  coord_cartesian(clip = "off") +
+  theme_bw() +
+  labs(x = "False Discovery Proportaion") +
+  theme(axis.title.x = element_text(size = 14, face  = "bold"),
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(size = 14, face = "bold"),
+        axis.text.x = element_text(size = 14))
+ggsave("fdr.png", width = 8, height = 6)
+```
+
+
+
+
