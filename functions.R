@@ -1,18 +1,18 @@
-library(invgamma)
 library(MASS)
 library(tidyverse)
 
 generate_data <- function(n, p, m, signal = 10) {
   # n x p
-  x <- mvrnorm(n, mu = rnorm(p),
+  mean_x <- rnorm(p)
+  x <- mvrnorm(n, mu = mean_x,
                Sigma = diag(.1, nrow = p))
   
-  x_tilde <-  mvrnorm(n, mu = rnorm(p),
+  x_tilde <-  mvrnorm(n, mu = mean_x,
                       Sigma = diag(.1, nrow = p))
   
   # n x 1
   
-  eps <- rnorm(n, mean = 0, sd = rinvgamma(n, 100, 10))
+  eps <- rnorm(n, mean = 0, sd = .1)
   
   
   # p x 1

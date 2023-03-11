@@ -17,7 +17,7 @@ n <- 200
 # error control
 alpha <- 0.2
 
-data_list <- generate_data(n, p, m, signal = signal)
+data_list <- generate_data(n, p, m, signal = 4)
 x <- data_list$x; x_tilde <- data_list$x_tilde; y <- data_list$y
 ```
 
@@ -57,6 +57,7 @@ abline(h = thres_kf, col = "red")
 text(600, thres_kf + .5, labels = "Rejection threshold", col = "red")
 legend("topleft", legend = c("true null", "true alternative"), col = c("black", "blue"), 
        pch = c(1, 3))
+dev.off()
 ```
 
 
